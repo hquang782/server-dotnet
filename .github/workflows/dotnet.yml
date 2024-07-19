@@ -14,15 +14,45 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: testdb
+          MYSQL_USER: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+          
     steps:
     - uses: actions/checkout@v4
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
+
+    - name: Wait for MySQL to be ready
+      run: |
+        until mysqladmin ping -h127.0.0.1 -uroot -pexample --silent; do
+          echo "Waiting for MySQL to be ready..."
+          sleep 5
+        done
+      
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
       run: dotnet build --no-restore
     - name: Test
+      # env:
+      #   CONNECTION_STRING: "Server=127.0.0.1;Database=testdb;User=testuser;Password=testpassword;"
       run: dotnet test --no-build --verbosity normal
+    # - name: Deploy to Heroku
+    #   env:
+    #     HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+    #   run: |
+    #     heroku deploy:jar ${{ github.workspace }}/publish --app my-heroku-app
