@@ -10,6 +10,7 @@ using laptop_shop.models;
 using laptop_shop.Interfaces;
 using AutoMapper;
 using laptop_shop.Dto.Brand;
+using LaptopShopSystem.Dto;
 
 namespace laptop_shop.Controllers
 {
@@ -40,77 +41,57 @@ namespace laptop_shop.Controllers
         }
 
         // GET: api/Brand/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult> GetBrand(int id)
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult> GetBrand([FromRoute] int id)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
             var brand = await _brandRepository.GetBrandById(id);
-            if(brand ==null) return NotFound();
-
+            if (brand == null) return NotFound();
+            var brandDto = _mapper.Map<BrandDto>(brand);
+            return Ok(brandDto);
         }
 
         // PUT: api/Brand/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutBrand(int id, Brand brand)
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> UpdateBrand([FromRoute] int id, [FromBody] BrandCreate brand)
         {
-            if (id != brand.Id)
+            if (!ModelState.IsValid)
             {
-                return BadRequest();
+                return BadRequest(ModelState);
             }
 
-            _context.Entry(brand).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!BrandExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
+            var brandModel = _mapper.Map<Brand>(brand);
+            var brandUpdated = _brandRepository.UpdateBrand(id, brandModel);
+            if (brandUpdated == null) return NotFound();
+            return Ok("Update brand success!");
         }
 
         // POST: api/Brand
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult> PostBrand(BrandCreate brand)
+        public async Task<ActionResult> PostBrand([FromBody] BrandCreate brand)
         {
             var newBrand = _mapper.Map<Brand>(brand);
-            return CreatedAtAction("GetBrand", new { id = brand.Id }, brand);
+            var brandCreated = await _brandRepository.CreateBrand(newBrand);
+
+            return CreatedAtAction("GetBrand", new { id = newBrand.Id }, brandCreated);
         }
 
         // DELETE: api/Brand/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteBrand(int id)
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> DeleteBrand([FromRoute] int id)
         {
-            var brand = await _context.Brands.FindAsync(id);
-            if (brand == null)
+            if (!ModelState.IsValid)
             {
-                return NotFound();
+                return BadRequest(ModelState);
             }
-
-            _context.Brands.Remove(brand);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool BrandExists(int id)
-        {
-            return _context.Brands.Any(e => e.Id == id);
+            var brand = await _brandRepository.DeleteBrand(id);
+            if (brand == null) return NotFound();
+            return Ok("Brand was cancel!");
         }
     }
 }
